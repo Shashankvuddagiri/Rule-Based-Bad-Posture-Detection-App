@@ -10,6 +10,41 @@ const MODES = [
   { value: "yoga_tpose", label: "Yoga T-Pose" }
 ];
 
+const POSE_CONNECTIONS = [
+  [0,1],[1,2],[2,3],[3,7],
+  [0,4],[4,5],[5,6],[6,8],
+  [9,10],
+  [11,12],[11,13],[13,15],[15,17],[15,19],[15,21],[17,19],[12,14],[14,16],[16,18],[16,20],[16,22],[18,20],
+  [11,23],[12,24],[23,24],[23,25],[24,26],[25,27],[27,29],[27,31],[29,31],[26,28],[28,30],[28,32],[30,32]
+];
+
+function drawSkeleton(ctx, landmarks, width, height) {
+  if (!landmarks || landmarks.length === 0) return;
+  ctx.clearRect(0, 0, width, height);
+
+  // Draw connections
+  ctx.strokeStyle = "#00FF00";
+  ctx.lineWidth = 2;
+  POSE_CONNECTIONS.forEach(([start, end]) => {
+    const lmStart = landmarks[start];
+    const lmEnd = landmarks[end];
+    if (lmStart && lmEnd) {
+      ctx.beginPath();
+      ctx.moveTo(lmStart.x * width, lmStart.y * height);
+      ctx.lineTo(lmEnd.x * width, lmEnd.y * height);
+      ctx.stroke();
+    }
+  });
+
+  // Draw landmarks
+  ctx.fillStyle = "#FF0000";
+  landmarks.forEach(lm => {
+    ctx.beginPath();
+    ctx.arc(lm.x * width, lm.y * height, 4, 0, 2 * Math.PI);
+    ctx.fill();
+  });
+}
+
 const PostureCam = () => {
   const webcamRef = useRef(null);
   const [mode, setMode] = useState(MODES[0].value);
@@ -34,9 +69,18 @@ const PostureCam = () => {
         });
         if (response.data && response.data.feedback) {
           setFeedbackMessages(response.data.feedback);
-          // Optionally, you can use response.data.landmarks for drawing on canvas
+          // Draw skeleton if landmarks are present
+          if (response.data.landmarks && canvasRef.current) {
+            const ctx = canvasRef.current.getContext("2d");
+            drawSkeleton(ctx, response.data.landmarks, canvasRef.current.width, canvasRef.current.height);
+          }
         } else if (response.data && response.data.status === "no_pose_detected") {
           setFeedbackMessages(["No pose detected"]);
+          // Clear canvas if no pose
+          if (canvasRef.current) {
+            const ctx = canvasRef.current.getContext("2d");
+            ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+          }
         } else {
           setFeedbackMessages(["Unexpected response from backend"]);
         }
