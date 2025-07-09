@@ -47,21 +47,19 @@ def process_frame():
         results = pose.process(img_rgb)
         if results.pose_world_landmarks:
             landmarks = results.pose_world_landmarks.landmark
-            # Choose analysis function
             mode = data['mode'].lower()
             if mode == 'squat':
-                feedback = analyze_squat_posture(landmarks)
+                feedback, confidences = analyze_squat_posture(landmarks)
             elif mode == 'desk':
-                feedback = analyze_desk_posture(landmarks)
+                feedback, confidences = analyze_desk_posture(landmarks)
             elif mode == 'pushup':
-                feedback = analyze_pushup_posture(landmarks)
+                feedback, confidences = analyze_pushup_posture(landmarks)
             elif mode == 'lunge':
-                feedback = analyze_lunge_posture(landmarks)
+                feedback, confidences = analyze_lunge_posture(landmarks)
             elif mode == 'yoga_tpose':
-                feedback = analyze_yoga_tpose(landmarks)
+                feedback, confidences = analyze_yoga_tpose(landmarks)
             else:
-                feedback = ["Unknown mode"]
-            # Landmarks as list of dicts
+                feedback, confidences = ["Unknown mode"], [1.0]
             landmarks_list = [
                 {"x": lm.x, "y": lm.y, "z": lm.z, "visibility": lm.visibility}
                 for lm in landmarks
@@ -69,6 +67,7 @@ def process_frame():
             return jsonify({
                 "status": "success",
                 "feedback": feedback,
+                "confidences": confidences,
                 "landmarks": landmarks_list
             })
         else:
