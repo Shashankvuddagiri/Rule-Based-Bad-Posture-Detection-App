@@ -1,5 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import Webcam from "react-webcam";
+import axios from "axios";
 
 const MODES = [
   { value: "squat", label: "Squat" },
@@ -16,14 +17,34 @@ const PostureCam = () => {
   const [uploadedImage, setUploadedImage] = useState(null);
   const [uploadedVideo, setUploadedVideo] = useState(null);
 
-  // Periodic frame capture (for future backend integration)
-  const captureFrame = useCallback(() => {
+  // Optional: Canvas for drawing overlays
+  const canvasRef = useRef(null);
+
+  // Periodic frame capture and backend call
+  const captureFrame = useCallback(async () => {
     if (webcamRef.current) {
-      // In the future, get the screenshot and send to backend
-      // const imageSrc = webcamRef.current.getScreenshot();
-      console.log("Capturing frame...");
+      const screenshot = webcamRef.current.getScreenshot();
+      if (!screenshot) return;
+      // Remove the data URL prefix to get only the base64 string
+      const base64 = screenshot.replace(/^data:image\/\w+;base64,/, "");
+      try {
+        const response = await axios.post("http://localhost:5000/api/process_frame", {
+          image: base64,
+          mode: mode
+        });
+        if (response.data && response.data.feedback) {
+          setFeedbackMessages(response.data.feedback);
+          // Optionally, you can use response.data.landmarks for drawing on canvas
+        } else if (response.data && response.data.status === "no_pose_detected") {
+          setFeedbackMessages(["No pose detected"]);
+        } else {
+          setFeedbackMessages(["Unexpected response from backend"]);
+        }
+      } catch (error) {
+        setFeedbackMessages([`Error: ${error.message}`]);
+      }
     }
-  }, [webcamRef]);
+  }, [mode]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -61,13 +82,25 @@ const PostureCam = () => {
           </select>
         </label>
       </div>
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 16, position: "relative", width: 400 }}>
         <Webcam
           audio={false}
           ref={webcamRef}
           screenshotFormat="image/jpeg"
           width={400}
           videoConstraints={{ facingMode: "user" }}
+        />
+        {/* Canvas overlay for future drawing */}
+        <canvas
+          ref={canvasRef}
+          width={400}
+          height={300}
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            pointerEvents: "none"
+          }}
         />
       </div>
       <div style={{ marginBottom: 16 }}>
