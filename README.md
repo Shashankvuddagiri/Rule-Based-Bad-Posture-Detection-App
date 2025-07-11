@@ -6,7 +6,6 @@ A full-stack application for real-time and image-based human posture analysis us
 
 ## Table of Contents
 - [Features](#features)
-- [Architecture Overview](#architecture-overview)
 - [Backend (Flask)](#backend-flask)
 - [Frontend (React + Vite)](#frontend-react--vite)
 - [Setup & Installation](#setup--installation)
@@ -14,7 +13,7 @@ A full-stack application for real-time and image-based human posture analysis us
 - [Posture Analysis Logic](#posture-analysis-logic)
 - [Sample Assets](#sample-assets)
 - [Development](#development)
-- [License](#license)
+
 
 ---
 
@@ -32,15 +31,8 @@ A full-stack application for real-time and image-based human posture analysis us
 
 ---
 
-## Architecture Overview
 
-```mermaid
-graph TD;
-  User["User (Web Browser)"] -->|HTTP/REST| Frontend["React Frontend (Vite)"]
-  Frontend -->|API Calls| Backend["Flask Backend (MediaPipe, OpenCV)"]
-  Backend -->|Rule-based Analysis| Posture["Posture Analysis Logic"]
-  Backend -->|Returns JSON Feedback| Frontend
-```
+ 
 
 ---
 
