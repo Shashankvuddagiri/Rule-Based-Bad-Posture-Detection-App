@@ -51,8 +51,10 @@ def min_visibility(*vis):
 # Analyze both sides for symmetric postures, return feedback and confidences
 
 # 1️⃣ Squat posture analysis
-def analyze_squat_posture(landmarks, back_angle_thresh=150, knee_toe_margin=0.0):
+def analyze_squat_posture(landmarks, back_angle_thresh=165, knee_toe_margin=0.0):
     feedback, confidences = [], []
+    angles = {}
+    confs = {}
     for side in ['LEFT', 'RIGHT']:
         shoulder, v1 = get_xyz(landmarks, POSE_LANDMARKS[f'{side}_SHOULDER'])
         hip, v2 = get_xyz(landmarks, POSE_LANDMARKS[f'{side}_HIP'])
@@ -61,13 +63,20 @@ def analyze_squat_posture(landmarks, back_angle_thresh=150, knee_toe_margin=0.0)
         # Back angle
         back_angle = calculate_angle(shoulder, hip, knee)
         conf = min_visibility(v1, v2, v3)
-        if back_angle < back_angle_thresh:
-            feedback.append(f"({side}) Straighten your back")
-            confidences.append(conf)
-        # Knee past toe (check y-axis: knee should not be much ahead of foot vertically)
-        if knee[1] > foot[1] + knee_toe_margin:
-            feedback.append(f"({side}) Knees are past toes")
-            confidences.append(min_visibility(v3, v4))
+        angles[side] = back_angle
+        confs[side] = conf
+        if conf > 0.5:
+            if back_angle < back_angle_thresh:
+                feedback.append(f"({side}) Straighten your back (angle: {back_angle:.1f})")
+                confidences.append(conf)
+            # Knee past toe (check y-axis: knee should not be much ahead of foot vertically)
+            if knee[1] > foot[1] + knee_toe_margin:
+                feedback.append(f"({side}) Knees are past toes")
+                confidences.append(min_visibility(v3, v4))
+    # If both sides are above threshold and confidence is high, add good feedback
+    if all(angles[side] >= back_angle_thresh and confs[side] > 0.5 for side in ['LEFT', 'RIGHT']):
+        feedback.append("Good squat! (back angles: L={:.1f}, R={:.1f})".format(angles['LEFT'], angles['RIGHT']))
+        confidences.append(min(confs['LEFT'], confs['RIGHT']))
     return feedback, confidences
 
 # 2️⃣ Desk posture analysis

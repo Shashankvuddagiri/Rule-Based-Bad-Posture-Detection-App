@@ -110,6 +110,8 @@ const PostureCam = () => {
   const [videoFeedback, setVideoFeedback] = useState([]);
   const [videoFrameIdx, setVideoFrameIdx] = useState(0);
   const [videoTotalFrames, setVideoTotalFrames] = useState(0);
+  // Add a dedicated ref for the image canvas
+  const imageCanvasRef = useRef(null);
 
   const handleStartCamera = () => {
     setCameraError("");
@@ -259,6 +261,27 @@ const PostureCam = () => {
     };
   };
 
+  // Draw skeleton overlay for uploaded image after feedback
+  useEffect(() => {
+    if (uploadedImage && report && report.landmarks && imageCanvasRef.current) {
+      const img = document.getElementById('uploaded-img');
+      if (img) {
+        imageCanvasRef.current.width = img.width;
+        imageCanvasRef.current.height = img.height;
+        const ctx = imageCanvasRef.current.getContext('2d');
+        drawSkeleton(ctx, report.landmarks, img.width, img.height);
+      }
+    }
+  }, [uploadedImage, report]);
+
+  // Draw skeleton overlay for webcam after feedback
+  useEffect(() => {
+    if (showWebcam && report && report.landmarks && canvasRef.current) {
+      const ctx = canvasRef.current.getContext('2d');
+      drawSkeleton(ctx, report.landmarks, canvasRef.current.width, canvasRef.current.height);
+    }
+  }, [showWebcam, report]);
+
   // Modern, light, responsive UI
   return (
     <div style={{ minHeight: '100vh', width: '100vw', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#232323' }}>
@@ -290,7 +313,7 @@ const PostureCam = () => {
                   height={300}
                   videoConstraints={{ facingMode: "user" }}
                   onUserMediaError={handleUserMediaError}
-                  style={{ borderRadius: 12 }}
+                  style={{ borderRadius: 12, position: 'absolute', left: 0, top: 0, zIndex: 1 }}
                 />
                 <canvas
                   ref={canvasRef}
@@ -301,7 +324,8 @@ const PostureCam = () => {
                     left: 0,
                     top: 0,
                     pointerEvents: "none",
-                    borderRadius: 12
+                    borderRadius: 12,
+                    zIndex: 2
                   }}
                 />
               </div>
@@ -317,9 +341,34 @@ const PostureCam = () => {
               Upload Video: <input type="file" accept="video/*" onChange={handleVideoUpload} style={{ marginLeft: 8 }} />
             </label>
             {uploadedImage && (
-              <div style={{ marginTop: 8 }}>
-                <img src={uploadedImage} alt="Uploaded" style={{ maxWidth: 400, marginTop: 8, borderRadius: 10, boxShadow: '0 1px 4px #4f8ef71a' }} />
-                <button onClick={handleGetImageFeedback} disabled={processing} style={{ marginTop: 12, background: '#4F8EF7', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 22px', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}>Get Feedback</button>
+              <div style={{ marginTop: 8, position: 'relative', display: 'inline-block' }}>
+                <img
+                  id="uploaded-img"
+                  src={uploadedImage}
+                  alt="Uploaded"
+                  style={{ maxWidth: 400, marginTop: 8, borderRadius: 10, boxShadow: '0 1px 4px #4f8ef71a', display: 'block', width: '100%' }}
+                  onLoad={e => {
+                    // Resize canvas to match image
+                    if (imageCanvasRef.current) {
+                      imageCanvasRef.current.width = e.target.width;
+                      imageCanvasRef.current.height = e.target.height;
+                    }
+                  }}
+                />
+                <canvas
+                  ref={imageCanvasRef}
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    pointerEvents: 'none',
+                    borderRadius: 10,
+                    zIndex: 2,
+                    width: '100%',
+                    height: '100%'
+                  }}
+                />
+                <button onClick={handleGetImageFeedback} disabled={processing} style={{ marginTop: 12, background: '#4F8EF7', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 22px', fontWeight: 600, fontSize: 16, cursor: 'pointer', display: 'block' }}>Get Feedback</button>
               </div>
             )}
             {uploadedVideo && (
