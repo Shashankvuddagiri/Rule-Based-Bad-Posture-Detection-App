@@ -1,4 +1,5 @@
 Flask
-Flask-Cors 
+Flask-Cors
 opencv-python
 mediapipe
+gunicorn
